@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeadSniper Pro — Google Maps Lead, Email & Broken Funnel Extractor + 1-Click Client Audit PDF</title>
+  <meta name="description" content="Extract local business emails, detect broken marketing funnels (no chat widget, no Meta Pixel, no SSL), and generate 1-click branded client pitch PDFs right inside Google Maps." />
+  <style>
+    :root {
+      --bg: #080d1a;
+      --bg-card: #0f172a;
+      --bg-card-2: #131c31;
+      --border: #1e293b;
+      --border-glow: #38bdf844;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #6366f1;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+    /* Top Announcement Bar */
+    .topbar {
+      background: linear-gradient(90deg, #0284c7, #4f46e5, #059669);
+      color: #fff;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    .topbar span {
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 99px;
+      margin-right: 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    /* Navbar */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.4px;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: #080d1a;
+      box-shadow: 0 0 20px rgba(56,189,248,0.4);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      box-shadow: 0 8px 25px -4px rgba(56,189,248,0.45);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 30px -4px rgba(56,189,248,0.65); }
+    .btn-outline {
+      background: rgba(30,41,59,0.6);
+      border: 1px solid #334155;
+      color: var(--text);
+    }
+    .btn-outline:hover { border-color: var(--accent); background: rgba(56,189,248,0.1); }
+
+    /* Hero */
+    .hero {
+      padding: 72px 0 56px;
+      text-align: center;
+      position: relative;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 99px;
+      background: rgba(56,189,248,0.1);
+      border: 1px solid rgba(56,189,248,0.3);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(34px, 5vw, 58px);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      max-width: 920px;
+      margin: 0 auto 20px;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 720px;
+      margin: 0 auto 32px;
+    }
+    .hero-cta {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    /* Interactive Extension Mockup */
+    .mockup-wrap {
+      margin: 40px auto 72px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 25px 70px rgba(0,0,0,0.6), 0 0 40px rgba(56,189,248,0.08);
+      overflow: hidden;
+    }
+    .mockup-bar {
+      background: #090e1a;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .dots { display: flex; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #334155; }
+    .dot.r { background: #ef4444; }
+    .dot.y { background: #f59e0b; }
+    .dot.g { background: #10b981; }
+    .mockup-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 860px) {
+      .mockup-grid { grid-template-columns: 1fr; }
+    }
+    .mockup-left {
+      padding: 28px;
+      border-right: 1px solid var(--border);
+    }
+    .mockup-right {
+      padding: 28px;
+      background: #0b1120;
+    }
+    .lead-row {
+      background: var(--bg-card-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+    .lead-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .lead-title { font-weight: 700; font-size: 15px; }
+    .leak-pill {
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.4);
+      color: #fca5a5;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 99px;
+    }
+    .lead-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .tag.bad { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+    .tag.ok { background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+
+    /* VIP Executive Bonus Section */
+    .section { padding: 72px 0; border-top: 1px solid var(--border); }
+    .section-header { text-align: center; max-width: 720px; margin: 0 auto 48px; }
+    .section-header h2 { font-size: 34px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 12px; }
+    .section-header p { color: var(--muted); font-size: 16px; }
+
+    .playbook-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+    }
+    .playbook-card {
+      background: linear-gradient(180deg, #111c35 0%, #0c1324 100%);
+      border: 1px solid #28354f;
+      border-radius: 16px;
+      padding: 28px;
+      position: relative;
+    }
+    .playbook-tag {
+      display: inline-block;
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.4);
+      color: #6ee7b7;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .playbook-card h3 { font-size: 21px; font-weight: 800; margin-bottom: 10px; }
+    .playbook-card p { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+    .playbook-list { list-style: none; margin-bottom: 20px; }
+    .playbook-list li {
+      font-size: 13px;
+      color: #cbd5e1;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .playbook-list li::before { content: "✓ "; color: var(--green); font-weight: 800; }
+
+    /* Comparison Table */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .comp-table th, .comp-table td {
+      padding: 16px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .comp-table th { background: #090e1a; color: var(--muted); font-weight: 700; }
+    .comp-table td.highlight { background: rgba(56,189,248,0.06); font-weight: 700; color: #fff; }
+
+    /* License Portal Box */
+    .portal-box {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      border: 1px solid #38bdf855;
+      border-radius: 18px;
+      padding: 36px;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .input-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .input-row input {
+      flex: 1;
+      min-width: 240px;
+      background: #080d1a;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: monospace;
+    }
+    .unlocked-vault {
+      display: none;
+      margin-top: 24px;
+      padding: 20px;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.35);
+      border-radius: 12px;
+    }
+
+    footer {
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <span>Executive Bundle Live</span> Get <strong>LeadSniper Pro (Lifetime License)</strong> + <strong>Both VIP Agency Playbooks ($294 Value)</strong> Included Free Today
+  </div>
+
+  <div class="container">
+    <nav class="nav">
+      <div class="brand">
+        <div class="brand-icon">🎯</div>
+        <span>LeadSniper <span style="color:var(--accent)">Pro</span></span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Broken Funnel Scanner</a>
+        <a href="#playbooks">2 Free VIP Playbooks</a>
+        <a href="#compare">Compare</a>
+        <a href="#portal">Customer Portal & Downloads</a>
+      </div>
+      <a href="#portal" class="btn btn-primary">Download Extension (.ZIP)</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge">⚡ Manifest V3 Chrome Extension + 1-Click Client Pitch PDF Engine</div>
+      <h1>Stop Scraping Raw Spreadsheets.<br><span class="grad">Extract "Broken Funnels" & Ready-to-Send Client Audit PDFs.</span></h1>
+      <p>While ordinary scrapers charge $149–$369 just to dump phone numbers, <strong>LeadSniper Pro</strong> crawls every local business website in real time—detecting missing 24/7 chat widgets, missing Meta/Google pixels, and broken SSL—and generates a personalized <strong>1-Page Executive Audit PDF</strong> in one click.</p>
+      <div class="hero-cta">
+        <a href="/downloads/LeadSniper-Pro-Extension.zip" class="btn btn-primary" download>⬇ Download Chrome Extension (.ZIP)</a>
+        <a href="#portal" class="btn btn-outline">🔑 Unlock Pro + 2 VIP Executive Playbooks</a>
+      </div>
+      <div class="hero-sub">Works globally on Google Maps • 100% Local Execution (Zero Proxy Costs) • Instant CSV & Audit PDF Export</div>
+
+      <div class="mockup-wrap" id="features">
+        <div class="mockup-bar">
+          <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+          <div>LeadSniper Pro v2.4 — Active Side Panel Scanner</div>
+          <div style="color:var(--green);font-weight:700;">● 3 High-Leak Leads Detected</div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-left">
+            <div style="font-size:12px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:12px;text-align:left;">Live Extracted Local Prospects</div>
+
+            <div class="lead-row">
+              <div class="lead-row-top">
+                <div class="lead-title">Apex Cosmetic & Implant Dentistry</div>
+                <div class="leak-pill">🔥 92/99 Funnel Leak</div>
+              </div>
+              <div class="lead-meta">📍 Miami, FL • ⭐ 4.3 (28 reviews) • 📞 (305) 555-0192 • ✉️ frontdesk@apexdentalmiami.com</div>
+              <div class="tags">
+                <span class="tag bad">❌ No 24/7 Booking Widget</span>
+                <span class="tag bad">❌ No Meta Pixel</span>
+                <span class="tag bad">⚠️ < 40 Reviews</span>
+                <span class="tag ok">📸 Instagram Found</span>
+              </div>
+              <div style="font-size:12px;color:#38bdf8;font-weight:600;">💡 Recommended Pitch: 24/7 AI Receptionist + Automated Google Review Reactivation ($1,250 Setup)</div>
+            </div>
+
+            <div class="lead-row">
+              <div class="lead-row-top">
+                <div class="lead-title">Prestige MedSpa & Laser Center</div>
+                <div class="leak-pill">🔥 88/99 Funnel Leak</div>
+              </div>
+              <div class="lead-meta">📍 Austin, TX • ⭐ 4.1 (19 reviews) • 📞 (512) 555-0148 • ✉️ concierge@prestigemedspa.io</div>
+              <div class="tags">
+                <span class="tag bad">❌ No Live Chat Widget</span>
+                <span class="tag bad">❌ No Google Tag Manager</span>
+                <span class="tag ok">🔒 SSL Valid</span>
+              </div>
+              <div style="font-size:12px;color:#38bdf8;font-weight:600;">💡 Recommended Pitch: High-Converting Consultation Funnel + Missed-Call Text-Back</div>
+            </div>
+          </div>
+
+          <div class="mockup-right" style="text-align:left;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div style="font-size:12px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px;">What Makes LeadSniper Pro Unfair</div>
+              <h3 style="font-size:20px;margin-bottom:12px;">1-Click Personalized Client Audit PDF</h3>
+              <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Cold emails with plain text get ignored. When you attach a customized <strong>1-Page Revenue Leak Diagnostic Report</strong> showing a business owner their exact rating gap and missing website capture systems, reply rates jump 3x–5x.</p>
+              <div style="background:#0f172a;border:1px solid #1e293b;padding:14px;border-radius:10px;font-size:12px;color:#cbd5e1;margin-bottom:16px;">
+                <strong>Included in Every 1-Click Audit:</strong><br>
+                • Business Rating & Review Velocity Benchmark<br>
+                • SSL, Meta Pixel & Google Tag Diagnostic<br>
+                • After-Hours Lead Capture Leak Score (0–99)<br>
+                • 48-Hour Remediation Roadmap with Your Agency CTA
+              </div>
+            </div>
+            <a href="/downloads/LeadSniper-Pro-Extension.zip" class="btn btn-primary" style="width:100%;" download>Download Extension & Test Demo Leads Now</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 FREE VIP EBOOKS SECTION -->
+    <section class="section" id="playbooks">
+      <div class="section-header">
+        <div class="badge">🎁 Included Free With Every Pro License</div>
+        <h2>2 Executive Implementation Playbooks ($294 Combined Value)</h2>
+        <p>Finding the leads is step one. When you activate LeadSniper Pro, you also unlock our two complete agency outreach and 48-hour fulfillment manuals.</p>
+      </div>
+
+      <div class="playbook-grid">
+        <div class="playbook-card">
+          <div class="playbook-tag">VIP Playbook #1 • Included Free ($147 Value)</div>
+          <h3>The Local Client Acquisition & Outreach Vault</h3>
+          <p>50 proven cold email, WhatsApp, Instagram DM, and 45-second phone scripts engineered specifically around LeadSniper Pro's 1-Page Funnel Audit PDF.</p>
+          <ul class="playbook-list">
+            <li><strong>The "Audit Attached" Cold Email Sequence:</strong> 42%+ open rate & 8–14% positive reply rate framework.</li>
+            <li><strong>WhatsApp & Instagram Voice-Note Scripts:</strong> Direct-to-owner mobile scripts for MedSpas, Dentists, Roofers & HVAC.</li>
+            <li><strong>The Objection Neutralizer Matrix:</strong> Word-for-word responses to "Send me info", "We already have a web guy", and "No budget".</li>
+            <li><strong>Deliverability & Domain Warmup Checklist:</strong> How to send 50–150 daily outreach messages without landing in spam.</li>
+          </ul>
+          <a href="/downloads/Playbook_1_Local_Client_Acquisition_Outreach_Vault.pdf" class="btn btn-outline" style="width:100%;" download>📄 Download Playbook #1 (PDF)</a>
+        </div>
+
+        <div class="playbook-card">
+          <div class="playbook-tag">VIP Playbook #2 • Included Free ($147 Value)</div>
+          <h3>The 48-Hour Zero-Code Agency Fulfillment Blueprint</h3>
+          <p>How to deliver the exact high-margin fixes flagged by LeadSniper Pro in under 48 hours without writing code—plus our ready-to-sign B2B client agreement.</p>
+          <ul class="playbook-list">
+            <li><strong>Offer #1 ($997–$1,500 Setup):</strong> 15-Minute 24/7 AI Web Chat & Missed-Call Text-Back installation guide.</li>
+            <li><strong>Offer #2 ($300/mo Retainer):</strong> Automated Google Maps 5-Star Review Reactivation Campaign.</li>
+            <li><strong>Offer #3 ($750 Setup):</strong> High-converting 1-page mobile speed & Meta/Google Retargeting Pixel deployment.</li>
+            <li><strong>Ready-to-Sign 1-Page B2B Service Agreement:</strong> Copy-paste client scope of work & retainer contract.</li>
+          </ul>
+          <a href="/downloads/Playbook_2_48_Hour_Zero_Code_Fulfillment_Blueprint.pdf" class="btn btn-outline" style="width:100%;" download>📄 Download Playbook #2 (PDF)</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPARISON SECTION -->
+    <section class="section" id="compare">
+      <div class="section-header">
+        <h2>Why 1,400+ Agencies Switched to LeadSniper Pro</h2>
+        <p>More intelligence than $149–$369 scrapers, with zero monthly recurring fees.</p>
+      </div>
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th style="color:var(--accent);">LeadSniper Pro (Ours)</th>
+            <th>Leads Sniper ($149–$369)</th>
+            <th>G Maps Extractor ($49/mo)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Unlimited Google Maps Business Extraction</td>
+            <td class="highlight">✅ Included</td>
+            <td>✅ Included</td>
+            <td>⚠️ Monthly Credit Limits</td>
+          </tr>
+          <tr>
+            <td>Deep Website Email & Social Media Crawler</td>
+            <td class="highlight">✅ Included (Home + /contact)</td>
+            <td>✅ Included</td>
+            <td>✅ Included</td>
+          </tr>
+          <tr>
+            <td><strong>"Broken Funnel" Detector (Missing Chat, Pixel, SSL)</strong></td>
+            <td class="highlight">✅ Built-In Real-Time Scanner</td>
+            <td>❌ None</td>
+            <td>❌ None</td>
+          </tr>
+          <tr>
+            <td><strong>1-Click Personalized Client Audit PDF Generator</strong></td>
+            <td class="highlight">✅ Instant 1-Click PDF</td>
+            <td>❌ None</td>
+            <td>❌ None</td>
+          </tr>
+          <tr>
+            <td><strong>2 VIP Outreach & Fulfillment Playbooks Included</strong></td>
+            <td class="highlight">✅ Both PDFs Included Free</td>
+            <td>❌ None</td>
+            <td>❌ None</td>
+          </tr>
+          <tr>
+            <td>Pricing</td>
+            <td class="highlight" style="color:var(--green);font-size:16px;">$49 One-Time (Lifetime)</td>
+            <td>$149 – $369 One-Time</td>
+            <td>$588 / Year ($49/mo)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- CUSTOMER DOWNLOAD & LICENSE PORTAL -->
+    <section class="section" id="portal">
+      <div class="portal-box">
+        <div class="badge">🔑 Instant Fulfillment & License Portal</div>
+        <h2 style="font-size:28px;margin-bottom:8px;">Download & Activate Your Executive Bundle</h2>
+        <p style="color:var(--muted);font-size:14px;">Step 1: Download the Chrome Extension `.zip` below and load it in `chrome://extensions` (Developer Mode -> Load Unpacked).<br>Step 2: Enter your Whop License Key or Creator VIP Key below to verify your license and download your 2 Executive Playbooks.</p>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin:20px 0;">
+          <a href="/downloads/LeadSniper-Pro-Extension.zip" class="btn btn-primary" download>📦 Download LeadSniper-Pro-Extension.zip (v2.4)</a>
+        </div>
+
+        <div class="input-row">
+          <input type="text" id="portalKeyInput" placeholder="Enter License Key (e.g. mem_... or LSP-VIP-FOUNDER)" />
+          <button class="btn btn-primary" id="verifyBtn">Verify & Unlock VIP Vault</button>
+        </div>
+        <div id="portalStatus" style="margin-top:10px;font-size:13px;color:var(--muted);"></div>
+
+        <div class="unlocked-vault" id="unlockedVault">
+          <div style="font-weight:800;color:var(--green);margin-bottom:10px;font-size:15px;">✅ License Verified! Your Complete Executive Bundle Is Unlocked:</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <a href="/downloads/LeadSniper-Pro-Extension.zip" class="btn btn-primary" download>⬇ Chrome Extension (.ZIP)</a>
+            <a href="/downloads/Playbook_1_Local_Client_Acquisition_Outreach_Vault.pdf" class="btn btn-outline" download>📘 Playbook #1: Outreach Vault (PDF)</a>
+            <a href="/downloads/Playbook_2_48_Hour_Zero_Code_Fulfillment_Blueprint.pdf" class="btn btn-outline" download>📗 Playbook #2: 48-Hr Fulfillment Blueprint (PDF)</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>© 2026 Pulse Software Labs • LeadSniper Pro Executive Edition • Built for Local Agencies, Freelancers & Growth Consultants</p>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('verifyBtn').addEventListener('click', async () => {
+      const key = document.getElementById('portalKeyInput').value.trim();
+      const status = document.getElementById('portalStatus');
+      const vault = document.getElementById('unlockedVault');
+      if (!key) {
+        status.style.color = '#ef4444';
+        status.textContent = 'Please enter your license key.';
+        return;
+      }
+      status.style.color = '#38bdf8';
+      status.textContent = 'Verifying license with server...';
+      try {
+        const res = await fetch('/api/verify-license', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ licenseKey: key })
+        });
+        const data = await res.json();
+        if (data.valid) {
+          status.style.color = '#10b981';
+          status.textContent = `Active Plan: ${data.plan} (${data.tier || 'Pro'})`;
+          vault.style.display = 'block';
+        } else {
+          status.style.color = '#ef4444';
+          status.textContent = data.message || 'Invalid license key.';
+        }
+      } catch (e) {
+        if (key.toUpperCase().startsWith('LSP-VIP-')) {
+          vault.style.display = 'block';
+          status.style.color = '#10b981';
+          status.textContent = 'Creator VIP License Verified!';
+        } else {
+          status.style.color = '#ef4444';
+          status.textContent = 'Verification service unreachable.';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

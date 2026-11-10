@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeadSniper Pro</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">🎯</div>
+      <div>
+        <h1>LeadSniper <span class="badge-pro" id="planBadge">STARTER</span></h1>
+        <p class="subtitle">Google Maps Lead &amp; Broken-Funnel Engine</p>
+      </div>
+    </div>
+    <button class="btn-icon" id="toggleLicenseBtn" title="Manage License Key">🔑</button>
+  </header>
+
+  <!-- License Activation Drawer -->
+  <section class="license-box" id="licenseBox">
+    <div class="license-header">
+      <span>Activate Whop Pro License</span>
+      <a href="https://leadsniper-pro.vercel.app/#pricing" target="_blank" class="buy-link">Get Key ($49 Bundle) →</a>
+    </div>
+    <div class="license-input-row">
+      <input type="text" id="licenseInput" placeholder="Enter Whop key (mem_... or LSP-PRO-...)" />
+      <button id="activateBtn" class="btn-primary btn-sm">Unlock</button>
+    </div>
+    <p id="licenseStatus" class="license-status">Starter tier: 15 leads/session. Unlock Pro for unlimited leads + PDF Audits.</p>
+  </section>
+
+  <!-- KPI Summary Strip -->
+  <section class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-val" id="statTotal">0</span>
+      <span class="stat-lbl">Leads Found</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-val stat-accent" id="statEmails">0</span>
+      <span class="stat-lbl">Emails &amp; Phones</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-val stat-danger" id="statLeaks">0</span>
+      <span class="stat-lbl">Broken Funnels</span>
+    </div>
+  </section>
+
+  <!-- Controls -->
+  <section class="controls">
+    <div class="btn-row">
+      <button id="startBtn" class="btn-primary">▶ Start Maps Extraction</button>
+      <button id="stopBtn" class="btn-secondary" disabled>⏸ Pause</button>
+    </div>
+    <div class="sub-controls">
+      <label class="checkbox-lbl">
+        <input type="checkbox" id="filterLeaksOnly" />
+        <span>Broken Funnels Only (High-Ticket Prospects)</span>
+      </label>
+      <div class="action-links">
+        <button id="demoBtn" class="link-btn" title="Load sample local businesses to test PDF Audit & CSV">+ Demo Data</button>
+        <button id="clearBtn" class="link-btn danger">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Export Bar -->
+  <section class="export-bar">
+    <button id="exportCsvBtn" class="btn-export">⬇ Export Enriched CSV (<span id="exportCount">0</span>)</button>
+  </section>
+
+  <!-- Leads Feed -->
+  <main class="leads-container" id="leadsContainer">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🗺️</div>
+      <h3>Open Google Maps &amp; Search Any Niche</h3>
+      <p>Search e.g. <strong>"Dentists in Miami"</strong> or <strong>"Roofers in Dallas"</strong> on Google Maps, then click <strong>Start Maps Extraction</strong>.</p>
+      <button id="openMapsBtn" class="btn-outline">Open Google Maps ↗</button>
+    </div>
+  </main>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
