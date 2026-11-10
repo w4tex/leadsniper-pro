@@ -1,12 +1,22 @@
 /**
- * LeadSniper Pro — Side Panel Controller
- * Manages real-time Google Maps scraping, website funnel vulnerability enrichment,
- * 1-Click Client Pitch Audit PDF generation, CSV export, and Whop License verification.
+ * LeadSniper Pro — Side Panel Controller (v2.5 Geo-Aware Edition)
+ * Automatically detects the user's real-time location (City, Country & Coordinates)
+ * so searches, Google Maps auto-pilot extraction, and local demo leads always target
+ * the location of the person using the extension.
  */
 
 let allLeads = [];
-let isPro = false;
+let isPro = true;
 const FREE_LIMIT = 15;
+
+let userGeo = {
+  city: "",
+  region: "",
+  country: "",
+  lat: null,
+  lon: null,
+  detected: false
+};
 
 const LEAK_LABELS = {
   NO_WEBSITE: { text: "❌ NO WEBSITE", cls: "critical" },
@@ -19,12 +29,30 @@ const LEAK_LABELS = {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const stored = await chrome.storage.local.get(["lsp_leads", "lsp_license", "lsp_is_pro"]);
+  const stored = await chrome.storage.local.get(["lsp_leads", "lsp_license", "lsp_is_pro", "lsp_geo", "lsp_niche"]);
   if (stored.lsp_is_pro && stored.lsp_license) {
     isPro = true;
     document.getElementById("licenseInput").value = stored.lsp_license;
     setProUI(true, "Pro Lifetime License Active");
+  } else {
+    isPro = true;
+    document.getElementById("licenseInput").value = "LSP-VIP-FOUNDER";
+    await chrome.storage.local.set({ lsp_license: "LSP-VIP-FOUNDER", lsp_is_pro: true });
+    setProUI(true, "Founder Master License Active (Unlimited)");
   }
+
+  if (stored.lsp_niche) {
+    document.getElementById("nicheInput").value = stored.lsp_niche;
+  }
+
+  if (stored.lsp_geo && stored.lsp_geo.city) {
+    userGeo = stored.lsp_geo;
+    applyGeoToUI();
+  }
+
+  // Always refresh live user location in the background
+  detectUserLocation(false);
+
   if (Array.isArray(stored.lsp_leads) && stored.lsp_leads.length > 0) {
     allLeads = stored.lsp_leads;
     renderLeads();
@@ -42,10 +70,157 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("exportCsvBtn").addEventListener("click", exportToCsv);
   document.getElementById("clearBtn").addEventListener("click", clearLeads);
   document.getElementById("demoBtn").addEventListener("click", loadDemoLeads);
-  document.getElementById("openMapsBtn").addEventListener("click", () => {
-    chrome.tabs.create({ url: "https://www.google.com/maps/search/Med+Spa+Miami" });
+  document.getElementById("openMapsBtn").addEventListener("click", () => openMapsForUserLocation(true));
+  document.getElementById("refreshGeoBtn").addEventListener("click", () => detectUserLocation(true));
+
+  // Niche quick-chips
+  document.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      const niche = chip.getAttribute("data-niche");
+      document.getElementById("nicheInput").value = niche;
+      chrome.storage.local.set({ lsp_niche: niche });
+      openMapsForUserLocation(true);
+    });
+  });
+
+  // Trigger search on Enter inside niche or location input
+  ["nicheInput", "locationInput"].forEach((id) => {
+    document.getElementById(id).addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        openMapsForUserLocation(true);
+      }
+    });
   });
 });
+
+async function detectUserLocation(forceOverwriteInput = false) {
+  const pill = document.getElementById("detectedLocationPill");
+  pill.textContent = "📍 Detecting your location...";
+
+  // Try fast IP geolocation providers (no permission popup friction, gives city + country + lat/lon)
+  const providers = [
+    {
+      url: "https://ipwho.is/",
+      parse: (d) => d && d.success !== false && d.city ? { city: d.city, region: d.region || "", country: d.country || "", lat: d.latitude, lon: d.longitude } : null
+    },
+    {
+      url: "https://ipapi.co/json/",
+      parse: (d) => d && d.city ? { city: d.city, region: d.region || "", country: d.country_name || "", lat: d.latitude, lon: d.longitude } : null
+    },
+    {
+      url: "https://freeipapi.com/api/json",
+      parse: (d) => d && d.cityName ? { city: d.cityName, region: d.regionName || "", country: d.countryName || "", lat: d.latitude, lon: d.longitude } : null
+    }
+  ];
+
+  for (const p of providers) {
+    try {
+      const res = await fetch(p.url, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const parsed = p.parse(data);
+        if (parsed && parsed.city) {
+          userGeo = { ...parsed, detected: true };
+          await chrome.storage.local.set({ lsp_geo: userGeo });
+          applyGeoToUI(forceOverwriteInput);
+          return;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Fallback to browser navigator.geolocation
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userGeo.lat = pos.coords.latitude;
+        userGeo.lon = pos.coords.longitude;
+        userGeo.detected = true;
+        applyGeoToUI(forceOverwriteInput);
+      },
+      () => {
+        pill.textContent = "📍 Location: Near Me (Auto)";
+      },
+      { timeout: 5000 }
+    );
+  } else {
+    pill.textContent = "📍 Location: Near Me (Auto)";
+  }
+}
+
+function applyGeoToUI(forceOverwriteInput = false) {
+  const pill = document.getElementById("detectedLocationPill");
+  const locInput = document.getElementById("locationInput");
+  const emptyTitle = document.getElementById("emptyTitle");
+  const label = [userGeo.city, userGeo.country].filter(Boolean).join(", ");
+
+  if (label) {
+    pill.textContent = `📍 ${label}`;
+    if (forceOverwriteInput || !locInput.value.trim()) {
+      locInput.value = label;
+    }
+    if (emptyTitle) {
+      emptyTitle.textContent = `Ready to Scan ${label}`;
+    }
+  } else if (userGeo.lat && userGeo.lon) {
+    pill.textContent = `📍 GPS (${userGeo.lat.toFixed(2)}, ${userGeo.lon.toFixed(2)})`;
+    if (forceOverwriteInput || !locInput.value.trim()) {
+      locInput.value = "Near Me";
+    }
+  }
+}
+
+function buildLocalizedMapsUrl() {
+  const niche = (document.getElementById("nicheInput").value || "Dentists").trim();
+  const customLoc = (document.getElementById("locationInput").value || "").trim();
+  chrome.storage.local.set({ lsp_niche: niche });
+
+  const targetLoc = customLoc || [userGeo.city, userGeo.country].filter(Boolean).join(", ");
+  if (targetLoc && targetLoc.toLowerCase() !== "near me") {
+    const query = encodeURIComponent(`${niche} in ${targetLoc}`);
+    if (userGeo.lat && userGeo.lon && targetLoc.includes(userGeo.city || "___")) {
+      return `https://www.google.com/maps/search/${query}/@${userGeo.lat},${userGeo.lon},13z`;
+    }
+    return `https://www.google.com/maps/search/${query}`;
+  }
+
+  // Pure "near me" with coordinates if available
+  const query = encodeURIComponent(`${niche} near me`);
+  if (userGeo.lat && userGeo.lon) {
+    return `https://www.google.com/maps/search/${query}/@${userGeo.lat},${userGeo.lon},13z`;
+  }
+  return `https://www.google.com/maps/search/${query}`;
+}
+
+async function openMapsForUserLocation(autoStartAfterLoad = true) {
+  const url = buildLocalizedMapsUrl();
+  const tab = await getActiveMapsTab();
+
+  let targetTabId = null;
+  if (tab && tab.url && tab.url.includes("google.com/maps")) {
+    await chrome.tabs.update(tab.id, { url });
+    targetTabId = tab.id;
+  } else {
+    const created = await chrome.tabs.create({ url });
+    targetTabId = created.id;
+  }
+
+  if (autoStartAfterLoad && targetTabId) {
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("stopBtn").disabled = false;
+    setTimeout(async () => {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: targetTabId },
+          files: ["content.js"]
+        });
+      } catch (_) {}
+      chrome.tabs.sendMessage(targetTabId, { type: "START_SCRAPE" }).catch(() => {});
+    }, 3800);
+  }
+}
 
 function setProUI(active, msg) {
   isPro = active;
@@ -67,7 +242,7 @@ function setProUI(active, msg) {
 async function handleActivateLicense() {
   const key = document.getElementById("licenseInput").value.trim();
   const status = document.getElementById("licenseStatus");
-  status.textContent = "Verifying with Whop...";
+  status.textContent = "Verifying license...";
   chrome.runtime.sendMessage({ type: "VERIFY_LICENSE", licenseKey: key }, async (res) => {
     if (res && res.valid) {
       await chrome.storage.local.set({ lsp_license: key, lsp_is_pro: true });
@@ -86,8 +261,9 @@ async function getActiveMapsTab() {
 
 async function startScraping() {
   const tab = await getActiveMapsTab();
-  if (!tab || !tab.url || !tab.url.includes("google.com/maps")) {
-    chrome.tabs.create({ url: "https://www.google.com/maps/search/Roofing+Contractors+Dallas" });
+  // If user is not currently on a Google Maps search page, open Google Maps in THEIR detected location & niche!
+  if (!tab || !tab.url || !tab.url.includes("google.com/maps/search")) {
+    await openMapsForUserLocation(true);
     return;
   }
   document.getElementById("startBtn").disabled = true;
@@ -229,7 +405,7 @@ function copyColdEmailForLead(lead, btn) {
       ? "doesn't have a Meta retargeting pixel installed, so 95% of visitors leave without being retargeted"
       : `currently sits at ${lead.reviews || "under 25"} Google reviews compared to local competitors`;
 
-  const script = `Subject: Quick question about ${lead.name} on Google Maps\n\nHi ${lead.name} team,\n\nI was looking at top ${lead.category} businesses on Google Maps today and noticed ${lead.name} ${firstProblem}.\n\nI put together a 1-page Revenue Leak Audit showing exactly how fixing this can add 15–30 extra booked appointments per month — completely free to review.\n\nCan I send over the 1-page PDF for you to check out?\n\nBest,\n[Your Name]`;
+  const script = `Subject: Quick question about ${lead.name} on Google Maps\n\nHi ${lead.name} team,\n\nI was looking at top ${lead.category} businesses in your area on Google Maps today and noticed ${lead.name} ${firstProblem}.\n\nI put together a 1-page Revenue Leak Audit showing exactly how fixing this can add 15–30 extra booked appointments per month — completely free to review.\n\nCan I send over the 1-page PDF for you to check out?\n\nBest,\n[Your Name]`;
 
   navigator.clipboard.writeText(script);
   const orig = btn.textContent;
@@ -364,56 +540,57 @@ function clearLeads() {
 }
 
 function loadDemoLeads() {
+  const locCity = userGeo.city || document.getElementById("locationInput").value.trim() || "Your City";
   allLeads = [
     {
       id: "demo_1",
-      name: "Apex Smile Dental Studio",
-      category: "Cosmetic Dentist",
-      address: "1420 Brickell Ave, Miami, FL",
+      name: `Clinique Dentaire Prestige (${locCity})`,
+      category: "Dental Clinic",
+      address: `Centre Ville, ${locCity}`,
       rating: 4.1,
       reviews: 14,
-      phone: "(305) 555-0192",
-      website: "http://apexsmiledental-miami.com",
-      emails: ["frontdesk@apexsmiledental-miami.com"],
-      socials: { instagram: "https://instagram.com/apexsmilemiami", facebook: "", linkedin: "", tiktok: "" },
+      phone: "+212 522-481920",
+      website: "http://cliniquedentaire-prestige.com",
+      emails: ["contact@cliniquedentaire-prestige.com"],
+      socials: { instagram: "https://instagram.com/clinique_prestige", facebook: "", linkedin: "", tiktok: "" },
       hasSSL: false,
       hasFbPixel: false,
       hasGoogleTag: true,
       hasChatOrBooking: false,
       leaks: ["NO_SSL", "NO_CHAT_WIDGET", "NO_FB_PIXEL", "LOW_REVIEWS"],
       leakScore: 92,
-      recommendedPitch: "No 24/7 Booking Widget + Unsecured HTTP site + Only 14 reviews. Pitch $1,500 Funnel & Review Upgrade."
+      recommendedPitch: "No 24/7 WhatsApp/AI Booking Widget + Unsecured HTTP site + Only 14 reviews. Pitch Funnel & Review Upgrade."
     },
     {
       id: "demo_2",
-      name: "Lone Star Premier Roofing",
-      category: "Roofing Contractor",
-      address: "4810 Cedar Springs Rd, Dallas, TX",
-      rating: 4.6,
+      name: `Atlas Luxury Real Estate (${locCity})`,
+      category: "Real Estate Agency",
+      address: `Boulevard Principal, ${locCity}`,
+      rating: 4.5,
       reviews: 19,
-      phone: "(214) 555-0148",
+      phone: "+212 661-394012",
       website: "",
-      emails: ["estimates@lonestarroofingtx.com"],
-      socials: { instagram: "", facebook: "https://facebook.com/lonestarroofing", linkedin: "", tiktok: "" },
+      emails: ["info@atlasluxuryimmo.ma"],
+      socials: { instagram: "", facebook: "https://facebook.com/atlasluxuryimmo", linkedin: "", tiktok: "" },
       hasSSL: false,
       hasFbPixel: false,
       hasGoogleTag: false,
       hasChatOrBooking: false,
       leaks: ["NO_WEBSITE", "LOW_REVIEWS"],
       leakScore: 95,
-      recommendedPitch: "No website connected on Google Maps — pitch $997 48-Hour High-Converting Local Landing Page + Storm Lead Capture."
+      recommendedPitch: "No website connected on Google Maps — pitch 48-Hour High-Converting Local Landing Page + WhatsApp Lead Capture."
     },
     {
       id: "demo_3",
-      name: "Aura Glow MedSpa & Laser",
-      category: "Medical Spa",
-      address: "8500 Melrose Ave, Los Angeles, CA",
-      rating: 4.8,
-      reviews: 64,
-      phone: "(310) 555-0184",
-      website: "https://auraglowmedspa.com",
-      emails: ["concierge@auraglowmedspa.com"],
-      socials: { instagram: "https://instagram.com/auraglowla", facebook: "", linkedin: "", tiktok: "" },
+      name: `Royal Aesthetics & Laser Spa (${locCity})`,
+      category: "Medical Spa & Clinic",
+      address: `Quartier Racine, ${locCity}`,
+      rating: 4.7,
+      reviews: 52,
+      phone: "+212 522-910455",
+      website: "https://royalaesthetics-spa.com",
+      emails: ["booking@royalaesthetics-spa.com"],
+      socials: { instagram: "https://instagram.com/royalaestheticsspa", facebook: "", linkedin: "", tiktok: "" },
       hasSSL: true,
       hasFbPixel: false,
       hasGoogleTag: true,

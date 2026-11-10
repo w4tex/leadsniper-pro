@@ -394,3 +394,80 @@ body {
   font-size: 11px;
   cursor: pointer;
 }
+
+
+/* Smart Geo-Location & Niche Finder */
+.geo-search-box {
+  background: #0d121d;
+  border-bottom: 1px solid var(--panel-border);
+  padding: 10px 14px;
+}
+
+.geo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+}
+
+.geo-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.search-inputs {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.search-inputs input {
+  background: #161d2f;
+  border: 1px solid #28324b;
+  color: var(--text);
+  padding: 7px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  width: 100%;
+}
+
+.search-inputs input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.niche-chips {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.niche-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  background: #161d2f;
+  border: 1px solid #28324b;
+  color: #cbd5e1;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chip:hover, .chip.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--primary);
+  color: #fff;
+}
