@@ -11,7 +11,7 @@
     <div class="brand">
       <div class="brand-logo">🎯</div>
       <div>
-        <h1>LeadSniper <span class="badge-pro" id="planBadge">PRO UNLIMITED</span></h1>
+        <h1>LeadSniper <span class="badge-pro" id="planBadge">STARTER</span></h1>
         <p class="subtitle">Google Maps Lead &amp; Broken-Funnel Engine</p>
       </div>
     </div>
@@ -19,35 +19,72 @@
   </header>
 
   <!-- License Activation Drawer -->
-  <section class="license-box" id="licenseBox" style="display: none;">
+  <section class="license-box" id="licenseBox">
     <div class="license-header">
       <span>Activate Whop Pro License</span>
       <a href="https://leadsniper-pro.vercel.app/#portal" target="_blank" class="buy-link">Get Key ($49 Bundle) →</a>
     </div>
     <div class="license-input-row">
-      <input type="text" id="licenseInput" placeholder="Enter Whop key (mem_... or LSP-VIP-...)" />
-      <button id="activateBtn" class="btn-primary btn-sm">Unlock</button>
+      <input type="text" id="licenseInput" placeholder="Enter Whop key (mem_... or LSP-VIP-FOUNDER)" />
+      <button id="activateBtn" class="btn-primary btn-sm">Unlock Pro</button>
     </div>
-    <p id="licenseStatus" class="license-status">Founder Master License Active (Unlimited)</p>
+    <div class="license-footer-row">
+      <p id="licenseStatus" class="license-status">Starter: Local area only (15 leads). Unlock Pro for Global Location Teleport + Unlimited Leads.</p>
+      <button id="switchModeBtn" class="link-btn" title="Founder toggle between Starter and Pro view">Switch Tier</button>
+    </div>
   </section>
 
-  <!-- Smart Geo-Location & Niche Finder Bar -->
+  <!-- Smart Geo-Location & Paid Global Location Teleport Bar -->
   <section class="geo-search-box">
     <div class="geo-header">
       <span class="geo-pill" id="detectedLocationPill">📍 Detecting your location...</span>
-      <button id="refreshGeoBtn" class="link-btn" title="Use my exact current location">📍 Use My Location</button>
+      <button id="refreshGeoBtn" class="link-btn" title="Reset to my current physical location">📍 My Location</button>
     </div>
-    <div class="search-inputs">
-      <input type="text" id="nicheInput" value="Dentists" placeholder="Business Niche (e.g. Dentists, Hotels, Clinics)" />
-      <input type="text" id="locationInput" placeholder="Near Me (Your Location)" />
+
+    <!-- Niche Row (Free for everyone) -->
+    <div class="field-group">
+      <label class="field-lbl">1. Business Niche</label>
+      <input type="text" id="nicheInput" value="Dentists" placeholder="e.g. Dentists, Med Spa, Hotels, Roofers" />
+      <div class="niche-chips">
+        <button class="chip" data-niche="Dentists">🦷 Dentists</button>
+        <button class="chip" data-niche="Medical Spa & Clinics">💆‍♀️ Clinics</button>
+        <button class="chip" data-niche="Restaurants & Cafes">🍽️ Restaurants</button>
+        <button class="chip" data-niche="Real Estate Agencies">🏢 Real Estate</button>
+        <button class="chip" data-niche="Hotels & Riads">🏨 Hotels</button>
+        <button class="chip" data-niche="Gyms & Fitness">🏋️ Gyms</button>
+      </div>
     </div>
-    <div class="niche-chips">
-      <button class="chip" data-niche="Dentists">🦷 Dentists</button>
-      <button class="chip" data-niche="Medical Spa & Clinics">💆‍♀️ Clinics</button>
-      <button class="chip" data-niche="Restaurants & Cafes">🍽️ Restaurants</button>
-      <button class="chip" data-niche="Real Estate Agencies">🏢 Real Estate</button>
-      <button class="chip" data-niche="Hotels & Riads">🏨 Hotels</button>
-      <button class="chip" data-niche="Gyms & Fitness">🏋️ Gyms</button>
+
+    <!-- Target Location Row (PAID PRO FEATURE) -->
+    <div class="field-group pro-location-group" id="proLocationGroup">
+      <div class="field-lbl-row">
+        <label class="field-lbl">2. Target Location / Market</label>
+        <span class="pro-feature-tag" id="locationLockBadge">🔒 PRO FEATURE</span>
+      </div>
+      <div class="location-input-wrap" id="locationInputWrap">
+        <input type="text" id="locationInput" placeholder="🔒 Upgrade to Pro to choose any city/country..." readonly />
+        <button id="unlockLocationBtn" class="btn-unlock-inline">🔒 Unlock</button>
+      </div>
+      <!-- High-Ticket Global City Presets (Pro Teleport) -->
+      <div class="city-chips" id="cityChips">
+        <button class="city-chip local-chip active" data-city="__LOCAL__">📍 My Area (Free)</button>
+        <button class="city-chip pro-chip" data-city="Miami, USA">🔒 🇺🇸 Miami</button>
+        <button class="city-chip pro-chip" data-city="Dubai, UAE">🔒 🇦🇪 Dubai</button>
+        <button class="city-chip pro-chip" data-city="London, UK">🔒 🇬🇧 London</button>
+        <button class="city-chip pro-chip" data-city="Paris, France">🔒 🇫🇷 Paris</button>
+        <button class="city-chip pro-chip" data-city="New York, USA">🔒 🇺🇸 New York</button>
+        <button class="city-chip pro-chip" data-city="Toronto, Canada">🔒 🇨🇦 Toronto</button>
+      </div>
+    </div>
+
+    <!-- Pro Upgrade Banner (shown when a Free user clicks a locked city or custom location) -->
+    <div class="upsell-toast" id="upsellToast" style="display: none;">
+      <div class="upsell-title">🌍 Unlock Global Location Teleport (Pro)</div>
+      <p class="upsell-desc">Free Starter scans your local area only. Unlock <strong>LeadSniper Pro</strong> to extract high-paying clients in <strong>Miami, Dubai, London, Paris, or any city worldwide</strong> + get both VIP Playbooks!</p>
+      <div class="upsell-actions">
+        <button id="quickEnterKeyBtn" class="btn-primary btn-xs">🔑 Enter License Key</button>
+        <a href="https://leadsniper-pro.vercel.app/#portal" target="_blank" class="btn-outline btn-xs">Get Pro ($49) ↗</a>
+      </div>
     </div>
   </section>
 
@@ -70,7 +107,7 @@
   <!-- Controls -->
   <section class="controls">
     <div class="btn-row">
-      <button id="startBtn" class="btn-primary">▶ Extract Leads in My Location</button>
+      <button id="startBtn" class="btn-primary">▶ Search &amp; Extract Leads</button>
       <button id="stopBtn" class="btn-secondary" disabled>⏸ Pause</button>
     </div>
     <div class="sub-controls">
@@ -79,7 +116,7 @@
         <span>Broken Funnels Only (High-Ticket)</span>
       </label>
       <div class="action-links">
-        <button id="demoBtn" class="link-btn" title="Load sample local businesses in your location">+ Local Demo</button>
+        <button id="demoBtn" class="link-btn" title="Load sample local businesses in selected market">+ Demo Data</button>
         <button id="clearBtn" class="link-btn danger">Clear</button>
       </div>
     </div>
@@ -95,8 +132,8 @@
     <div class="empty-state" id="emptyState">
       <div class="empty-icon">📍</div>
       <h3 id="emptyTitle">Ready to Scan Your Area</h3>
-      <p id="emptyDesc">Pick any niche above (or search anything on Google Maps) and click <strong>Extract Leads in My Location</strong>.</p>
-      <button id="openMapsBtn" class="btn-outline">🔍 Open Maps in My Location ↗</button>
+      <p id="emptyDesc">Pick a business niche above and click <strong>Search &amp; Extract Leads</strong> (or unlock <strong>Pro</strong> to target any city worldwide).</p>
+      <button id="openMapsBtn" class="btn-outline">🔍 Open Google Maps Here ↗</button>
     </div>
   </main>
 

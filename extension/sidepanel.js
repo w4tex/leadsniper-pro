@@ -1,12 +1,14 @@
 /**
- * LeadSniper Pro — Side Panel Controller (v2.5 Geo-Aware Edition)
- * Automatically detects the user's real-time location (City, Country & Coordinates)
- * so searches, Google Maps auto-pilot extraction, and local demo leads always target
- * the location of the person using the extension.
+ * LeadSniper Pro — Side Panel Controller (v2.6 Global Teleport Edition)
+ * - Starter Tier (Free): Scans only the user's auto-detected local area (up to 15 leads).
+ *   Custom Location & Global High-Ticket City Teleport (Miami, Dubai, London, Paris, NYC, Toronto)
+ *   are locked behind Pro License.
+ * - Pro Tier (Paid / VIP Key): Unlocks Custom Global Location Selector + 1-Click Global City Teleport
+ *   + Unlimited Leads + 1-Click Client Audit PDFs.
  */
 
 let allLeads = [];
-let isPro = true;
+let isPro = false;
 const FREE_LIMIT = 15;
 
 let userGeo = {
@@ -16,6 +18,15 @@ let userGeo = {
   lat: null,
   lon: null,
   detected: false
+};
+
+const GLOBAL_CITY_COORDS = {
+  "Miami, USA": { lat: 25.7617, lon: -80.1918 },
+  "Dubai, UAE": { lat: 25.2048, lon: 55.2708 },
+  "London, UK": { lat: 51.5072, lon: -0.1276 },
+  "Paris, France": { lat: 48.8566, lon: 2.3522 },
+  "New York, USA": { lat: 40.7128, lon: -74.0060 },
+  "Toronto, Canada": { lat: 43.6532, lon: -79.3832 }
 };
 
 const LEAK_LABELS = {
@@ -30,16 +41,6 @@ const LEAK_LABELS = {
 
 document.addEventListener("DOMContentLoaded", async () => {
   const stored = await chrome.storage.local.get(["lsp_leads", "lsp_license", "lsp_is_pro", "lsp_geo", "lsp_niche"]);
-  if (stored.lsp_is_pro && stored.lsp_license) {
-    isPro = true;
-    document.getElementById("licenseInput").value = stored.lsp_license;
-    setProUI(true, "Pro Lifetime License Active");
-  } else {
-    isPro = true;
-    document.getElementById("licenseInput").value = "LSP-VIP-FOUNDER";
-    await chrome.storage.local.set({ lsp_license: "LSP-VIP-FOUNDER", lsp_is_pro: true });
-    setProUI(true, "Founder Master License Active (Unlimited)");
-  }
 
   if (stored.lsp_niche) {
     document.getElementById("nicheInput").value = stored.lsp_niche;
@@ -47,10 +48,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (stored.lsp_geo && stored.lsp_geo.city) {
     userGeo = stored.lsp_geo;
-    applyGeoToUI();
   }
 
-  // Always refresh live user location in the background
+  if (stored.lsp_is_pro && stored.lsp_license) {
+    isPro = true;
+    document.getElementById("licenseInput").value = stored.lsp_license;
+    setProUI(true, "Pro Lifetime License + Global Location Active");
+  } else {
+    isPro = false;
+    setProUI(false, "Starter: Local area only (15 leads). Unlock Pro to choose any location worldwide.");
+  }
+
+  applyGeoToUI(false);
   detectUserLocation(false);
 
   if (Array.isArray(stored.lsp_leads) && stored.lsp_leads.length > 0) {
@@ -64,16 +73,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.getElementById("activateBtn").addEventListener("click", handleActivateLicense);
+  document.getElementById("switchModeBtn").addEventListener("click", toggleFounderTierPreview);
   document.getElementById("startBtn").addEventListener("click", startScraping);
   document.getElementById("stopBtn").addEventListener("click", stopScraping);
   document.getElementById("filterLeaksOnly").addEventListener("change", renderLeads);
   document.getElementById("exportCsvBtn").addEventListener("click", exportToCsv);
   document.getElementById("clearBtn").addEventListener("click", clearLeads);
   document.getElementById("demoBtn").addEventListener("click", loadDemoLeads);
-  document.getElementById("openMapsBtn").addEventListener("click", () => openMapsForUserLocation(true));
-  document.getElementById("refreshGeoBtn").addEventListener("click", () => detectUserLocation(true));
+  document.getElementById("openMapsBtn").addEventListener("click", () => openMapsForTargetLocation(true));
+  document.getElementById("refreshGeoBtn").addEventListener("click", () => {
+    selectLocalAreaChip();
+    detectUserLocation(true);
+  });
 
-  // Niche quick-chips
+  // Locked Location Input / Unlock Button clicks
+  document.getElementById("locationInput").addEventListener("click", () => {
+    if (!isPro) {
+      triggerLocationPaywall("Custom Location Search");
+    }
+  });
+  document.getElementById("unlockLocationBtn").addEventListener("click", () => {
+    triggerLocationPaywall("Custom Global Location");
+  });
+  document.getElementById("quickEnterKeyBtn").addEventListener("click", () => {
+    const box = document.getElementById("licenseBox");
+    box.style.display = "block";
+    const input = document.getElementById("licenseInput");
+    if (!input.value) input.value = "LSP-VIP-FOUNDER";
+    input.focus();
+  });
+
+  // Niche quick-chips (Free for everyone, searches in current allowed location)
   document.querySelectorAll(".chip").forEach((chip) => {
     chip.addEventListener("click", () => {
       document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
@@ -81,7 +111,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       const niche = chip.getAttribute("data-niche");
       document.getElementById("nicheInput").value = niche;
       chrome.storage.local.set({ lsp_niche: niche });
-      openMapsForUserLocation(true);
+      openMapsForTargetLocation(true);
+    });
+  });
+
+  // City Teleport chips (Local = Free, Global Cities = Paid Pro Feature)
+  document.querySelectorAll(".city-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const targetCity = chip.getAttribute("data-city");
+      if (targetCity === "__LOCAL__") {
+        selectLocalAreaChip();
+        openMapsForTargetLocation(true);
+        return;
+      }
+      if (!isPro) {
+        triggerLocationPaywall(targetCity);
+        return;
+      }
+      document.querySelectorAll(".city-chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      document.getElementById("locationInput").value = targetCity;
+      document.getElementById("upsellToast").style.display = "none";
+      openMapsForTargetLocation(true);
     });
   });
 
@@ -89,17 +140,49 @@ document.addEventListener("DOMContentLoaded", async () => {
   ["nicheInput", "locationInput"].forEach((id) => {
     document.getElementById(id).addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        openMapsForUserLocation(true);
+        if (id === "locationInput" && !isPro) {
+          triggerLocationPaywall("Custom Location");
+          return;
+        }
+        openMapsForTargetLocation(true);
       }
     });
   });
 });
 
-async function detectUserLocation(forceOverwriteInput = false) {
+function selectLocalAreaChip() {
+  document.querySelectorAll(".city-chip").forEach((c) => c.classList.remove("active"));
+  const localChip = document.querySelector('.city-chip[data-city="__LOCAL__"]');
+  if (localChip) localChip.classList.add("active");
+  const label = [userGeo.city, userGeo.country].filter(Boolean).join(", ") || "Near Me";
+  const locInput = document.getElementById("locationInput");
+  locInput.value = isPro ? label : `📍 ${label} (Local Area Only — Unlock Pro to change)`;
+}
+
+function triggerLocationPaywall(requestedMarket) {
+  const toast = document.getElementById("upsellToast");
+  toast.style.display = "block";
+  toast.querySelector(".upsell-title").textContent = `🔒 "${requestedMarket}" Requires LeadSniper Pro`;
+  const box = document.getElementById("licenseBox");
+  box.style.display = "block";
+}
+
+async function toggleFounderTierPreview() {
+  if (isPro) {
+    await chrome.storage.local.set({ lsp_is_pro: false });
+    setProUI(false, "Previewing Free Starter Mode (Location Locked to Local Area)");
+  } else {
+    const key = document.getElementById("licenseInput").value.trim() || "LSP-VIP-FOUNDER";
+    document.getElementById("licenseInput").value = key;
+    await chrome.storage.local.set({ lsp_license: key, lsp_is_pro: true });
+    setProUI(true, "Pro Lifetime License + Global Location Unlocked!");
+  }
+}
+
+async function detectUserLocation(forceResetToLocal = false) {
   const pill = document.getElementById("detectedLocationPill");
   pill.textContent = "📍 Detecting your location...";
 
-  // Try fast IP geolocation providers (no permission popup friction, gives city + country + lat/lon)
   const providers = [
     {
       url: "https://ipwho.is/",
@@ -124,21 +207,20 @@ async function detectUserLocation(forceOverwriteInput = false) {
         if (parsed && parsed.city) {
           userGeo = { ...parsed, detected: true };
           await chrome.storage.local.set({ lsp_geo: userGeo });
-          applyGeoToUI(forceOverwriteInput);
+          applyGeoToUI(forceResetToLocal);
           return;
         }
       }
     } catch (_) {}
   }
 
-  // Fallback to browser navigator.geolocation
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         userGeo.lat = pos.coords.latitude;
         userGeo.lon = pos.coords.longitude;
         userGeo.detected = true;
-        applyGeoToUI(forceOverwriteInput);
+        applyGeoToUI(forceResetToLocal);
       },
       () => {
         pill.textContent = "📍 Location: Near Me (Auto)";
@@ -150,43 +232,123 @@ async function detectUserLocation(forceOverwriteInput = false) {
   }
 }
 
-function applyGeoToUI(forceOverwriteInput = false) {
+function applyGeoToUI(forceResetToLocal = false) {
   const pill = document.getElementById("detectedLocationPill");
   const locInput = document.getElementById("locationInput");
   const emptyTitle = document.getElementById("emptyTitle");
   const label = [userGeo.city, userGeo.country].filter(Boolean).join(", ");
 
   if (label) {
-    pill.textContent = `📍 ${label}`;
-    if (forceOverwriteInput || !locInput.value.trim()) {
+    pill.textContent = `📍 Your Area: ${label}`;
+    if (!isPro) {
+      locInput.value = `📍 ${label} (Local Only — Pro Unlocks Worldwide)`;
+    } else if (forceResetToLocal || !locInput.value.trim() || locInput.value.includes("Local Only")) {
       locInput.value = label;
     }
     if (emptyTitle) {
-      emptyTitle.textContent = `Ready to Scan ${label}`;
+      emptyTitle.textContent = `Ready to Scan ${isPro ? (locInput.value || label) : label}`;
     }
-  } else if (userGeo.lat && userGeo.lon) {
-    pill.textContent = `📍 GPS (${userGeo.lat.toFixed(2)}, ${userGeo.lon.toFixed(2)})`;
-    if (forceOverwriteInput || !locInput.value.trim()) {
+  } else {
+    pill.textContent = "📍 Your Area: Local GPS";
+    if (!isPro) {
+      locInput.value = "📍 Near Me (Local Only — Pro Unlocks Worldwide)";
+    } else if (forceResetToLocal || !locInput.value.trim()) {
       locInput.value = "Near Me";
     }
   }
 }
 
+function setProUI(active, msg) {
+  isPro = active;
+  const badge = document.getElementById("planBadge");
+  const status = document.getElementById("licenseStatus");
+  const locInput = document.getElementById("locationInput");
+  const lockBadge = document.getElementById("locationLockBadge");
+  const unlockBtn = document.getElementById("unlockLocationBtn");
+  const upsellToast = document.getElementById("upsellToast");
+  const localLabel = [userGeo.city, userGeo.country].filter(Boolean).join(", ") || "Near Me";
+
+  if (active) {
+    badge.textContent = "PRO UNLIMITED";
+    badge.classList.add("active");
+    status.textContent = "✅ " + msg;
+    status.style.color = "#34d399";
+
+    // Unlock Custom Global Location Input
+    locInput.removeAttribute("readonly");
+    locInput.placeholder = "🌍 Enter ANY city, state, or country worldwide...";
+    if (!locInput.value || locInput.value.includes("Local Only")) {
+      locInput.value = localLabel;
+    }
+    lockBadge.textContent = "🌍 GLOBAL TELEPORT UNLOCKED";
+    lockBadge.classList.add("unlocked");
+    unlockBtn.style.display = "none";
+    upsellToast.style.display = "none";
+
+    // Remove lock icons on global city presets
+    document.querySelectorAll(".city-chip.pro-chip").forEach((chip) => {
+      chip.classList.remove("locked-chip");
+      chip.textContent = chip.textContent.replace("🔒 ", "");
+    });
+  } else {
+    badge.textContent = "STARTER";
+    badge.classList.remove("active");
+    status.textContent = msg;
+    status.style.color = "#fb7185";
+
+    // Lock Location Input to User's Physical Area Only
+    locInput.setAttribute("readonly", "readonly");
+    locInput.value = `📍 ${localLabel} (Local Only — Pro Unlocks Worldwide)`;
+    lockBadge.textContent = "🔒 PRO FEATURE";
+    lockBadge.classList.remove("unlocked");
+    unlockBtn.style.display = "block";
+    selectLocalAreaChip();
+
+    // Show lock icons on global city presets
+    document.querySelectorAll(".city-chip.pro-chip").forEach((chip) => {
+      chip.classList.add("locked-chip");
+      if (!chip.textContent.startsWith("🔒")) {
+        chip.textContent = "🔒 " + chip.textContent;
+      }
+    });
+  }
+}
+
 function buildLocalizedMapsUrl() {
   const niche = (document.getElementById("nicheInput").value || "Dentists").trim();
-  const customLoc = (document.getElementById("locationInput").value || "").trim();
   chrome.storage.local.set({ lsp_niche: niche });
 
-  const targetLoc = customLoc || [userGeo.city, userGeo.country].filter(Boolean).join(", ");
+  const localLabel = [userGeo.city, userGeo.country].filter(Boolean).join(", ");
+
+  // Starter users are strictly locked to their own detected physical location
+  if (!isPro) {
+    if (localLabel) {
+      const query = encodeURIComponent(`${niche} in ${localLabel}`);
+      if (userGeo.lat && userGeo.lon) {
+        return `https://www.google.com/maps/search/${query}/@${userGeo.lat},${userGeo.lon},13z`;
+      }
+      return `https://www.google.com/maps/search/${query}`;
+    }
+    const query = encodeURIComponent(`${niche} near me`);
+    return `https://www.google.com/maps/search/${query}`;
+  }
+
+  // Pro users can teleport to ANY custom city/country worldwide!
+  const customLoc = (document.getElementById("locationInput").value || "").trim();
+  const targetLoc = customLoc && !customLoc.includes("Local Only") ? customLoc : localLabel;
+
   if (targetLoc && targetLoc.toLowerCase() !== "near me") {
     const query = encodeURIComponent(`${niche} in ${targetLoc}`);
-    if (userGeo.lat && userGeo.lon && targetLoc.includes(userGeo.city || "___")) {
+    const presetCoords = GLOBAL_CITY_COORDS[targetLoc];
+    if (presetCoords) {
+      return `https://www.google.com/maps/search/${query}/@${presetCoords.lat},${presetCoords.lon},12z`;
+    }
+    if (userGeo.lat && userGeo.lon && targetLoc === localLabel) {
       return `https://www.google.com/maps/search/${query}/@${userGeo.lat},${userGeo.lon},13z`;
     }
     return `https://www.google.com/maps/search/${query}`;
   }
 
-  // Pure "near me" with coordinates if available
   const query = encodeURIComponent(`${niche} near me`);
   if (userGeo.lat && userGeo.lon) {
     return `https://www.google.com/maps/search/${query}/@${userGeo.lat},${userGeo.lon},13z`;
@@ -194,7 +356,7 @@ function buildLocalizedMapsUrl() {
   return `https://www.google.com/maps/search/${query}`;
 }
 
-async function openMapsForUserLocation(autoStartAfterLoad = true) {
+async function openMapsForTargetLocation(autoStartAfterLoad = true) {
   const url = buildLocalizedMapsUrl();
   const tab = await getActiveMapsTab();
 
@@ -222,23 +384,6 @@ async function openMapsForUserLocation(autoStartAfterLoad = true) {
   }
 }
 
-function setProUI(active, msg) {
-  isPro = active;
-  const badge = document.getElementById("planBadge");
-  const status = document.getElementById("licenseStatus");
-  if (active) {
-    badge.textContent = "PRO UNLIMITED";
-    badge.classList.add("active");
-    status.textContent = "✅ " + msg;
-    status.style.color = "#34d399";
-  } else {
-    badge.textContent = "STARTER";
-    badge.classList.remove("active");
-    status.textContent = msg;
-    status.style.color = "#fb7185";
-  }
-}
-
 async function handleActivateLicense() {
   const key = document.getElementById("licenseInput").value.trim();
   const status = document.getElementById("licenseStatus");
@@ -246,7 +391,7 @@ async function handleActivateLicense() {
   chrome.runtime.sendMessage({ type: "VERIFY_LICENSE", licenseKey: key }, async (res) => {
     if (res && res.valid) {
       await chrome.storage.local.set({ lsp_license: key, lsp_is_pro: true });
-      setProUI(true, res.message || "License Activated!");
+      setProUI(true, res.message || "Pro License & Global Location Unlocked!");
       renderLeads();
     } else {
       setProUI(false, (res && res.message) || "Invalid license key.");
@@ -260,22 +405,7 @@ async function getActiveMapsTab() {
 }
 
 async function startScraping() {
-  const tab = await getActiveMapsTab();
-  // If user is not currently on a Google Maps search page, open Google Maps in THEIR detected location & niche!
-  if (!tab || !tab.url || !tab.url.includes("google.com/maps/search")) {
-    await openMapsForUserLocation(true);
-    return;
-  }
-  document.getElementById("startBtn").disabled = true;
-  document.getElementById("stopBtn").disabled = false;
-
-  chrome.tabs.sendMessage(tab.id, { type: "START_SCRAPE" }).catch(async () => {
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["content.js"]
-    });
-    chrome.tabs.sendMessage(tab.id, { type: "START_SCRAPE" });
-  });
+  await openMapsForTargetLocation(true);
 }
 
 async function stopScraping() {
@@ -292,7 +422,8 @@ chrome.runtime.onMessage.addListener((msg) => {
     for (const raw of msg.leads) {
       if (!isPro && allLeads.length >= FREE_LIMIT) {
         stopScraping();
-        setProUI(false, `Starter limit (${FREE_LIMIT} leads) reached. Unlock Pro for unlimited leads!`);
+        setProUI(false, `Starter limit (${FREE_LIMIT} leads) reached. Unlock Pro for unlimited leads & Global Locations!`);
+        triggerLocationPaywall("Unlimited Leads & Global Locations");
         break;
       }
       if (allLeads.some((l) => l.name === raw.name && l.phone === raw.phone)) continue;
@@ -540,7 +671,11 @@ function clearLeads() {
 }
 
 function loadDemoLeads() {
-  const locCity = userGeo.city || document.getElementById("locationInput").value.trim() || "Your City";
+  const rawInput = document.getElementById("locationInput").value.trim();
+  const locCity = (isPro && rawInput && !rawInput.includes("Local Only"))
+    ? rawInput
+    : (userGeo.city || "Local Area");
+
   allLeads = [
     {
       id: "demo_1",

@@ -471,3 +471,171 @@ body {
   border-color: var(--primary);
   color: #fff;
 }
+
+
+/* Paid Global Location Selector & Upsell UI */
+.license-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.field-group {
+  margin-bottom: 8px;
+}
+
+.field-lbl-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.field-lbl {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.field-lbl-row .field-lbl {
+  margin-bottom: 0;
+}
+
+.field-group input[type="text"] {
+  background: #161d2f;
+  border: 1px solid #28324b;
+  color: var(--text);
+  padding: 7px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.field-group input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.pro-feature-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  letter-spacing: 0.3px;
+}
+
+.pro-feature-tag.unlocked {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.location-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.location-input-wrap input[readonly] {
+  background: #111624;
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #94a3b8;
+  cursor: pointer;
+  padding-right: 76px;
+}
+
+.btn-unlock-inline {
+  position: absolute;
+  right: 5px;
+  top: 4px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #090b10;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.city-chips {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.city-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.city-chip {
+  background: #141a29;
+  border: 1px solid #26304a;
+  color: #cbd5e1;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.city-chip.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #fff;
+  font-weight: 700;
+}
+
+.city-chip.locked-chip {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+}
+
+.upsell-toast {
+  margin-top: 8px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(99, 102, 241, 0.14));
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.upsell-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fbbf24;
+  margin-bottom: 3px;
+}
+
+.upsell-desc {
+  font-size: 11px;
+  color: #e2e8f0;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.upsell-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-xs {
+  padding: 5px 10px;
+  font-size: 11px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 700;
+  cursor: pointer;
+}
