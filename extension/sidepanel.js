@@ -1,10 +1,7 @@
 /**
- * LeadSniper Pro — Side Panel Controller (v2.6 Global Teleport Edition)
- * - Starter Tier (Free): Scans only the user's auto-detected local area (up to 15 leads).
- *   Custom Location & Global High-Ticket City Teleport (Miami, Dubai, London, Paris, NYC, Toronto)
- *   are locked behind Pro License.
- * - Pro Tier (Paid / VIP Key): Unlocks Custom Global Location Selector + 1-Click Global City Teleport
- *   + Unlimited Leads + 1-Click Client Audit PDFs.
+ * LeadSniper Pro — Side Panel Controller (v3.0 Precision Edition)
+ * Designed with deep modules (Ousterhout), Graphite telemetry craft (Unslop / Impeccable),
+ * and value-first upgrade mechanics (Paywalls).
  */
 
 let allLeads = [];
@@ -30,14 +27,25 @@ const GLOBAL_CITY_COORDS = {
 };
 
 const LEAK_LABELS = {
-  NO_WEBSITE: { text: "❌ NO WEBSITE", cls: "critical" },
-  SITE_UNREACHABLE: { text: "⚠️ SITE BROKEN", cls: "critical" },
-  NO_SSL: { text: "🔓 NO SSL (HTTP)", cls: "critical" },
-  NO_FB_PIXEL: { text: "📉 NO META PIXEL", cls: "warn" },
-  NO_CHAT_WIDGET: { text: "💬 NO AI CHAT / BOOKING", cls: "warn" },
-  NO_ANALYTICS: { text: "📊 NO GOOGLE TAG", cls: "normal" },
-  LOW_REVIEWS: { text: "⭐ LOW REVIEWS (<25)", cls: "warn" }
+  NO_WEBSITE: { text: "No website", cls: "critical" },
+  SITE_UNREACHABLE: { text: "Site unreachable", cls: "critical" },
+  NO_SSL: { text: "No SSL (HTTP)", cls: "critical" },
+  NO_FB_PIXEL: { text: "No Meta Pixel", cls: "warn" },
+  NO_CHAT_WIDGET: { text: "No 24/7 booking", cls: "warn" },
+  NO_ANALYTICS: { text: "No Google Tag", cls: "normal" },
+  LOW_REVIEWS: { text: "Under 25 reviews", cls: "warn" }
 };
+
+function setLocationPillText(text) {
+  const textSpan = document.getElementById("detectedLocationText");
+  const pill = document.getElementById("detectedLocationPill");
+  if (textSpan && textSpan.tagName) {
+    textSpan.textContent = text;
+  }
+  if (pill && (!textSpan || !pill.children || pill.children.length === 0)) {
+    pill.textContent = text;
+  }
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   const stored = await chrome.storage.local.get(["lsp_leads", "lsp_license", "lsp_is_pro", "lsp_geo", "lsp_niche"]);
@@ -53,10 +61,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (stored.lsp_is_pro && stored.lsp_license) {
     isPro = true;
     document.getElementById("licenseInput").value = stored.lsp_license;
-    setProUI(true, "Pro Lifetime License + Global Location Active");
+    setProUI(true, "Pro license active · Global markets enabled");
   } else {
     isPro = false;
-    setProUI(false, "Starter: Local area only (15 leads). Unlock Pro to choose any location worldwide.");
+    setProUI(false, "Starter tier · Local area only (15 leads per session)");
   }
 
   applyGeoToUI(false);
@@ -86,14 +94,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     detectUserLocation(true);
   });
 
-  // Locked Location Input / Unlock Button clicks
+  const dismissBtn = document.getElementById("dismissUpsellBtn");
+  if (dismissBtn) {
+    dismissBtn.addEventListener("click", () => {
+      document.getElementById("upsellToast").style.display = "none";
+    });
+  }
+
   document.getElementById("locationInput").addEventListener("click", () => {
     if (!isPro) {
-      triggerLocationPaywall("Custom Location Search");
+      triggerLocationPaywall("Custom market selection");
     }
   });
   document.getElementById("unlockLocationBtn").addEventListener("click", () => {
-    triggerLocationPaywall("Custom Global Location");
+    triggerLocationPaywall("Global market selection");
   });
   document.getElementById("quickEnterKeyBtn").addEventListener("click", () => {
     const box = document.getElementById("licenseBox");
@@ -103,7 +117,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     input.focus();
   });
 
-  // Niche quick-chips (Free for everyone, searches in current allowed location)
   document.querySelectorAll(".chip").forEach((chip) => {
     chip.addEventListener("click", () => {
       document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
@@ -115,7 +128,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // City Teleport chips (Local = Free, Global Cities = Paid Pro Feature)
   document.querySelectorAll(".city-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
       const targetCity = chip.getAttribute("data-city");
@@ -136,12 +148,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Trigger search on Enter inside niche or location input
   ["nicheInput", "locationInput"].forEach((id) => {
     document.getElementById(id).addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         if (id === "locationInput" && !isPro) {
-          triggerLocationPaywall("Custom Location");
+          triggerLocationPaywall("Custom market selection");
           return;
         }
         openMapsForTargetLocation(true);
@@ -154,15 +165,18 @@ function selectLocalAreaChip() {
   document.querySelectorAll(".city-chip").forEach((c) => c.classList.remove("active"));
   const localChip = document.querySelector('.city-chip[data-city="__LOCAL__"]');
   if (localChip) localChip.classList.add("active");
-  const label = [userGeo.city, userGeo.country].filter(Boolean).join(", ") || "Near Me";
+  const label = [userGeo.city, userGeo.country].filter(Boolean).join(", ") || "Local area";
   const locInput = document.getElementById("locationInput");
-  locInput.value = isPro ? label : `📍 ${label} (Local Area Only — Unlock Pro to change)`;
+  locInput.value = isPro ? label : `${label} (Local area only)`;
 }
 
 function triggerLocationPaywall(requestedMarket) {
   const toast = document.getElementById("upsellToast");
   toast.style.display = "block";
-  toast.querySelector(".upsell-title").textContent = `🔒 "${requestedMarket}" Requires LeadSniper Pro`;
+  const titleEl = toast.querySelector(".upsell-title");
+  if (titleEl) {
+    titleEl.textContent = `${requestedMarket} requires LeadSniper Pro`;
+  }
   const box = document.getElementById("licenseBox");
   box.style.display = "block";
 }
@@ -170,18 +184,17 @@ function triggerLocationPaywall(requestedMarket) {
 async function toggleFounderTierPreview() {
   if (isPro) {
     await chrome.storage.local.set({ lsp_is_pro: false });
-    setProUI(false, "Previewing Free Starter Mode (Location Locked to Local Area)");
+    setProUI(false, "Previewing Starter tier (Locked to local area)");
   } else {
     const key = document.getElementById("licenseInput").value.trim() || "LSP-VIP-FOUNDER";
     document.getElementById("licenseInput").value = key;
     await chrome.storage.local.set({ lsp_license: key, lsp_is_pro: true });
-    setProUI(true, "Pro Lifetime License + Global Location Unlocked!");
+    setProUI(true, "Pro license active · Global markets enabled");
   }
 }
 
 async function detectUserLocation(forceResetToLocal = false) {
-  const pill = document.getElementById("detectedLocationPill");
-  pill.textContent = "📍 Detecting your location...";
+  setLocationPillText("Detecting location");
 
   const providers = [
     {
@@ -223,37 +236,36 @@ async function detectUserLocation(forceResetToLocal = false) {
         applyGeoToUI(forceResetToLocal);
       },
       () => {
-        pill.textContent = "📍 Location: Near Me (Auto)";
+        setLocationPillText("Local area (GPS)");
       },
       { timeout: 5000 }
     );
   } else {
-    pill.textContent = "📍 Location: Near Me (Auto)";
+    setLocationPillText("Local area (GPS)");
   }
 }
 
 function applyGeoToUI(forceResetToLocal = false) {
-  const pill = document.getElementById("detectedLocationPill");
   const locInput = document.getElementById("locationInput");
   const emptyTitle = document.getElementById("emptyTitle");
   const label = [userGeo.city, userGeo.country].filter(Boolean).join(", ");
 
   if (label) {
-    pill.textContent = `📍 Your Area: ${label}`;
+    setLocationPillText(label);
     if (!isPro) {
-      locInput.value = `📍 ${label} (Local Only — Pro Unlocks Worldwide)`;
-    } else if (forceResetToLocal || !locInput.value.trim() || locInput.value.includes("Local Only")) {
+      locInput.value = `${label} (Local area only)`;
+    } else if (forceResetToLocal || !locInput.value.trim() || locInput.value.includes("Local area only")) {
       locInput.value = label;
     }
     if (emptyTitle) {
-      emptyTitle.textContent = `Ready to Scan ${isPro ? (locInput.value || label) : label}`;
+      emptyTitle.textContent = `Ready to scan ${isPro ? (locInput.value || label) : label}`;
     }
   } else {
-    pill.textContent = "📍 Your Area: Local GPS";
+    setLocationPillText("Local area");
     if (!isPro) {
-      locInput.value = "📍 Near Me (Local Only — Pro Unlocks Worldwide)";
+      locInput.value = "Local area only — Pro unlocks global cities";
     } else if (forceResetToLocal || !locInput.value.trim()) {
-      locInput.value = "Near Me";
+      locInput.value = "Near me";
     }
   }
 }
@@ -266,50 +278,42 @@ function setProUI(active, msg) {
   const lockBadge = document.getElementById("locationLockBadge");
   const unlockBtn = document.getElementById("unlockLocationBtn");
   const upsellToast = document.getElementById("upsellToast");
-  const localLabel = [userGeo.city, userGeo.country].filter(Boolean).join(", ") || "Near Me";
+  const localLabel = [userGeo.city, userGeo.country].filter(Boolean).join(", ") || "Local area";
 
   if (active) {
-    badge.textContent = "PRO UNLIMITED";
+    badge.textContent = "Pro";
     badge.classList.add("active");
-    status.textContent = "✅ " + msg;
-    status.style.color = "#34d399";
+    status.textContent = msg;
+    status.style.color = "#4cc38a";
 
-    // Unlock Custom Global Location Input
     locInput.removeAttribute("readonly");
-    locInput.placeholder = "🌍 Enter ANY city, state, or country worldwide...";
-    if (!locInput.value || locInput.value.includes("Local Only")) {
+    locInput.placeholder = "Enter any city, region, or country";
+    if (!locInput.value || locInput.value.includes("Local area only")) {
       locInput.value = localLabel;
     }
-    lockBadge.textContent = "🌍 GLOBAL TELEPORT UNLOCKED";
+    lockBadge.textContent = "Global markets active";
     lockBadge.classList.add("unlocked");
     unlockBtn.style.display = "none";
     upsellToast.style.display = "none";
 
-    // Remove lock icons on global city presets
     document.querySelectorAll(".city-chip.pro-chip").forEach((chip) => {
       chip.classList.remove("locked-chip");
-      chip.textContent = chip.textContent.replace("🔒 ", "");
     });
   } else {
-    badge.textContent = "STARTER";
+    badge.textContent = "Starter";
     badge.classList.remove("active");
     status.textContent = msg;
-    status.style.color = "#fb7185";
+    status.style.color = "#a1a1a6";
 
-    // Lock Location Input to User's Physical Area Only
     locInput.setAttribute("readonly", "readonly");
-    locInput.value = `📍 ${localLabel} (Local Only — Pro Unlocks Worldwide)`;
-    lockBadge.textContent = "🔒 PRO FEATURE";
+    locInput.value = `${localLabel} (Local area only)`;
+    lockBadge.textContent = "Pro feature";
     lockBadge.classList.remove("unlocked");
     unlockBtn.style.display = "block";
     selectLocalAreaChip();
 
-    // Show lock icons on global city presets
     document.querySelectorAll(".city-chip.pro-chip").forEach((chip) => {
       chip.classList.add("locked-chip");
-      if (!chip.textContent.startsWith("🔒")) {
-        chip.textContent = "🔒 " + chip.textContent;
-      }
     });
   }
 }
@@ -320,7 +324,6 @@ function buildLocalizedMapsUrl() {
 
   const localLabel = [userGeo.city, userGeo.country].filter(Boolean).join(", ");
 
-  // Starter users are strictly locked to their own detected physical location
   if (!isPro) {
     if (localLabel) {
       const query = encodeURIComponent(`${niche} in ${localLabel}`);
@@ -333,9 +336,8 @@ function buildLocalizedMapsUrl() {
     return `https://www.google.com/maps/search/${query}`;
   }
 
-  // Pro users can teleport to ANY custom city/country worldwide!
   const customLoc = (document.getElementById("locationInput").value || "").trim();
-  const targetLoc = customLoc && !customLoc.includes("Local Only") ? customLoc : localLabel;
+  const targetLoc = customLoc && !customLoc.includes("Local area only") ? customLoc : localLabel;
 
   if (targetLoc && targetLoc.toLowerCase() !== "near me") {
     const query = encodeURIComponent(`${niche} in ${targetLoc}`);
@@ -391,10 +393,10 @@ async function handleActivateLicense() {
   chrome.runtime.sendMessage({ type: "VERIFY_LICENSE", licenseKey: key }, async (res) => {
     if (res && res.valid) {
       await chrome.storage.local.set({ lsp_license: key, lsp_is_pro: true });
-      setProUI(true, res.message || "Pro License & Global Location Unlocked!");
+      setProUI(true, res.message || "Pro license active · Global markets enabled");
       renderLeads();
     } else {
-      setProUI(false, (res && res.message) || "Invalid license key.");
+      setProUI(false, (res && res.message) || "Invalid license key");
     }
   });
 }
@@ -422,8 +424,8 @@ chrome.runtime.onMessage.addListener((msg) => {
     for (const raw of msg.leads) {
       if (!isPro && allLeads.length >= FREE_LIMIT) {
         stopScraping();
-        setProUI(false, `Starter limit (${FREE_LIMIT} leads) reached. Unlock Pro for unlimited leads & Global Locations!`);
-        triggerLocationPaywall("Unlimited Leads & Global Locations");
+        setProUI(false, `Starter limit (${FREE_LIMIT} leads) reached · Upgrade to Pro for unlimited extraction`);
+        triggerLocationPaywall("Unlimited extraction & global markets");
         break;
       }
       if (allLeads.some((l) => l.name === raw.name && l.phone === raw.phone)) continue;
@@ -434,7 +436,7 @@ chrome.runtime.onMessage.addListener((msg) => {
         socials: { instagram: "", facebook: "", linkedin: "", tiktok: "" },
         leaks: raw.website ? [] : ["NO_WEBSITE"],
         leakScore: raw.website ? 40 : 95,
-        recommendedPitch: "Scanning website funnel...",
+        recommendedPitch: "Auditing website funnel...",
         scanned: false
       };
       allLeads.unshift(lead);
@@ -492,13 +494,15 @@ function renderLeads() {
     const badgesHtml = (lead.leaks || [])
       .map((code) => {
         const meta = LEAK_LABELS[code] || { text: code, cls: "normal" };
-        return `<span class="leak-tag ${meta.cls}">${meta.text}</span>`;
+        return `<span class="leak-tag ${meta.cls}"><span class="dot"></span>${meta.text}</span>`;
       })
       .join("");
 
-    const emailText = lead.emails && lead.emails.length > 0 ? `✉️ ${lead.emails[0]}` : "✉️ No email on site";
-    const phoneText = lead.phone ? `📞 ${lead.phone}` : "📞 No phone";
-    const ratingText = lead.rating ? `⭐ ${lead.rating} (${lead.reviews} reviews)` : "⭐ No rating";
+    const emailText = lead.emails && lead.emails.length > 0 ? lead.emails[0] : "No email on site";
+    const phoneText = lead.phone ? lead.phone : "No phone listed";
+    const ratingText = lead.rating ? `${lead.rating.toFixed(1)} (${lead.reviews} reviews)` : "No reviews";
+    const scoreVal = lead.leakScore || 50;
+    const scoreCls = scoreVal >= 70 ? "score-pill high-leak" : "score-pill";
 
     card.innerHTML = `
       <div class="lead-top">
@@ -506,17 +510,17 @@ function renderLeads() {
           <div class="lead-title">${escapeHtml(lead.name)}</div>
           <div class="lead-meta">${escapeHtml(lead.category)} · ${ratingText}</div>
         </div>
-        <span class="score-pill">Leak Score: ${lead.leakScore || 50}/99</span>
+        <span class="${scoreCls}">Leak ${scoreVal}/99</span>
       </div>
-      <div class="leak-badges">${badgesHtml || '<span class="leak-tag">✅ Healthy Funnel</span>'}</div>
+      <div class="leak-badges">${badgesHtml || '<span class="leak-tag healthy"><span class="dot"></span>Healthy funnel</span>'}</div>
       <div class="contact-row">
         <span>${escapeHtml(phoneText)}</span>
         <span>${escapeHtml(emailText)}</span>
       </div>
       <div class="pitch-box">${escapeHtml(lead.recommendedPitch || "")}</div>
       <div class="card-actions">
-        <button class="btn-audit" data-id="${lead.id}">📄 1-Click Client Audit PDF</button>
-        <button class="btn-copy-pitch" data-id="${lead.id}">📋 Copy Cold Email</button>
+        <button class="btn-audit" data-id="${lead.id}">Client audit PDF</button>
+        <button class="btn-copy-pitch" data-id="${lead.id}">Copy outreach email</button>
       </div>
     `;
 
@@ -529,18 +533,18 @@ function renderLeads() {
 function copyColdEmailForLead(lead, btn) {
   const firstProblem =
     lead.leaks && lead.leaks.includes("NO_WEBSITE")
-      ? "didn't have a website linked on your Google Maps profile"
+      ? "does not have a website linked on Google Maps"
       : lead.leaks && lead.leaks.includes("NO_CHAT_WIDGET")
-      ? "doesn't have an instant booking or 24/7 chat capture widget for after-hours visitors"
+      ? "does not have an after-hours booking or instant chat capture widget"
       : lead.leaks && lead.leaks.includes("NO_FB_PIXEL")
-      ? "doesn't have a Meta retargeting pixel installed, so 95% of visitors leave without being retargeted"
-      : `currently sits at ${lead.reviews || "under 25"} Google reviews compared to local competitors`;
+      ? "is missing a Meta retargeting pixel, meaning 95% of visitors leave without retargeting"
+      : `currently sits at ${lead.reviews || "under 25"} Google reviews compared to local top-3 competitors`;
 
-  const script = `Subject: Quick question about ${lead.name} on Google Maps\n\nHi ${lead.name} team,\n\nI was looking at top ${lead.category} businesses in your area on Google Maps today and noticed ${lead.name} ${firstProblem}.\n\nI put together a 1-page Revenue Leak Audit showing exactly how fixing this can add 15–30 extra booked appointments per month — completely free to review.\n\nCan I send over the 1-page PDF for you to check out?\n\nBest,\n[Your Name]`;
+  const script = `Subject: Quick question about ${lead.name} on Google Maps\n\nHi ${lead.name} team,\n\nI was reviewing ${lead.category} businesses in your area on Google Maps today and noticed ${lead.name} ${firstProblem}.\n\nI prepared a 1-page Funnel & Reputation Audit showing how fixing this typically recovers 15 to 30 missed customer inquiries per month.\n\nMind if I send the 1-page PDF over for you to review?\n\nBest,\n[Your Name]`;
 
   navigator.clipboard.writeText(script);
   const orig = btn.textContent;
-  btn.textContent = "✅ Copied!";
+  btn.textContent = "Copied";
   setTimeout(() => (btn.textContent = orig), 1500);
 }
 
@@ -548,13 +552,13 @@ function openClientAuditReport(lead) {
   const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
   const checkRow = (label, ok, impact) => `
     <tr>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;">${label}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">
-        <span style="padding:3px 8px;border-radius:99px;font-size:12px;font-weight:700;background:${ok ? "#dcfce7" : "#ffe4e6"};color:${ok ? "#166534" : "#9f1239"};">
-          ${ok ? "PASSED" : "CRITICAL LEAK"}
+      <td style="padding:12px;border-bottom:1px solid #e5e7eb;font-weight:500;color:#171717;">${label}</td>
+      <td style="padding:12px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:12px;">
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:4px;background:${ok ? "#f0fdf4" : "#fef2f2"};color:${ok ? "#16a34a" : "#dc2626"};border:1px solid ${ok ? "#bbf7d0" : "#fecaca"};">
+          ${ok ? "Passed" : "Critical leak"}
         </span>
       </td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#475569;font-size:13px;">${impact}</td>
+      <td style="padding:12px;border-bottom:1px solid #e5e7eb;color:#525252;font-size:13px;">${impact}</td>
     </tr>
   `;
 
@@ -562,60 +566,59 @@ function openClientAuditReport(lead) {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Digital Funnel Audit — ${escapeHtml(lead.name)}</title>
+  <title>Funnel Diagnostic — ${escapeHtml(lead.name)}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; background: #f8fafc; color: #0f172a; padding: 32px; }
-    .page { max-width: 780px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 36px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-    .top { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 18px; margin-bottom: 24px; }
-    .score-box { background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; padding: 12px 18px; border-radius: 10px; text-align: center; }
-    .score-box .num { font-size: 28px; font-weight: 900; display: block; }
+    body { font-family: "Geist", "Inter", -apple-system, sans-serif; background: #fafafa; color: #171717; padding: 32px; line-height: 1.5; }
+    .page { max-width: 780px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 36px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 24px; }
+    .score-box { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px 16px; border-radius: 8px; text-align: right; font-variant-numeric: tabular-nums; }
+    .score-box .num { font-family: monospace; font-size: 28px; font-weight: 500; line-height: 1; display: block; margin-bottom: 4px; }
     table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th { text-align: left; padding: 10px 12px; background: #f1f5f9; font-size: 12px; text-transform: uppercase; color: #475569; }
-    .cta-box { background: #ecfdf5; border: 1px solid #a7f3d0; padding: 18px; border-radius: 10px; margin-top: 24px; }
-    .print-btn { background: #10b981; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; cursor: pointer; margin-bottom: 20px; }
+    th { text-align: left; padding: 10px 12px; background: #f4f4f5; font-size: 12px; font-weight: 500; color: #525252; border-bottom: 1px solid #e5e7eb; }
+    .cta-box { background: #f4f4f5; border: 1px solid #e5e7eb; padding: 16px 20px; border-radius: 8px; margin-top: 24px; }
+    .print-btn { background: #171717; color: #ffffff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; margin-bottom: 16px; }
     @media print { .print-btn { display: none; } body { padding: 0; background: #fff; } .page { box-shadow: none; border: none; } }
   </style>
 </head>
 <body>
   <div style="max-width:780px;margin:0 auto;">
-    <button class="print-btn" onclick="window.print()">🖨️ Save / Print as Client PDF</button>
+    <button class="print-btn" onclick="window.print()">Save as client PDF</button>
   </div>
   <div class="page">
     <div class="top">
       <div>
-        <div style="font-size:12px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:1px;">Executive Local Funnel &amp; Reputation Audit</div>
-        <h1 style="margin:6px 0 4px;font-size:24px;">${escapeHtml(lead.name)}</h1>
-        <div style="color:#64748b;font-size:13px;">Category: ${escapeHtml(lead.category)} · Date: ${dateStr}</div>
+        <div style="font-size:12px;color:#737373;margin-bottom:4px;">Executive Local Funnel &amp; Reputation Audit · ${dateStr}</div>
+        <h1 style="margin:0 0 4px;font-size:24px;font-weight:500;">${escapeHtml(lead.name)}</h1>
+        <div style="color:#525252;font-size:13px;">Category: ${escapeHtml(lead.category)}</div>
       </div>
       <div class="score-box">
         <span class="num">${lead.leakScore || 75}/99</span>
-        <span style="font-size:11px;font-weight:700;">REVENUE LEAK RISK</span>
+        <span style="font-size:11px;">Leak index</span>
       </div>
     </div>
 
-    <p style="font-size:14px;line-height:1.6;color:#334155;">
-      Our automated diagnostic scanned <strong>${escapeHtml(lead.name)}</strong> across Google Maps and your web presence. Below are the exact conversion bottlenecks currently costing you inbound calls and booked appointments:
+    <p style="font-size:14px;color:#525252;">
+      Diagnostic scan of <strong>${escapeHtml(lead.name)}</strong> across Google Maps and connected web properties. The table below isolates conversion bottlenecks currently reducing inbound calls and booked appointments.
     </p>
 
     <table>
       <thead>
-        <tr><th>Diagnostic Check</th><th>Status</th><th>Estimated Business Impact</th></tr>
+        <tr><th>Diagnostic check</th><th>Status</th><th>Business impact</th></tr>
       </thead>
       <tbody>
-        ${checkRow("Active Website Connected", Boolean(lead.website) && !(lead.leaks || []).includes("SITE_UNREACHABLE"), "Customers clicking your Google Maps listing need a working mobile landing page.")}
-        ${checkRow("HTTPS / SSL Security", Boolean(lead.hasSSL), "Browsers display 'Not Secure' warnings on non-HTTPS sites, dropping trust by 68%.")}
-        ${checkRow("24/7 Instant Booking / AI Chat Widget", Boolean(lead.hasChatOrBooking), "Over 62% of local inquiries happen after 5 PM. Without instant chat/booking, leads call a competitor.")}
-        ${checkRow("Meta / Facebook Retargeting Pixel", Boolean(lead.hasFbPixel), "Without a retargeting pixel, 96% of website visitors leave and never return.")}
-        ${checkRow("Google Tag & Conversion Tracking", Boolean(lead.hasGoogleTag), "Required to measure which keywords and ads generate actual phone calls.")}
-        ${checkRow("Google Maps Review Velocity (25+ Reviews)", (lead.reviews || 0) >= 25 && (lead.rating || 0) >= 4.3, `Currently at ${lead.rating || 0}★ (${lead.reviews || 0} reviews). Top 3 Map Pack winners average 65+ reviews.`)}
+        ${checkRow("Active website linked", Boolean(lead.website) && !(lead.leaks || []).includes("SITE_UNREACHABLE"), "Prospective customers clicking Google Maps require an active mobile landing page.")}
+        ${checkRow("HTTPS / SSL encryption", Boolean(lead.hasSSL), "Unencrypted HTTP pages trigger browser security warnings and reduce visitor trust.")}
+        ${checkRow("24/7 instant booking or chat capture", Boolean(lead.hasChatOrBooking), "Over 60% of local inquiries occur outside business hours; uncaptured visitors call competitors.")}
+        ${checkRow("Meta retargeting pixel", Boolean(lead.hasFbPixel), "Without retargeting, 96% of website visitors leave without converting on their first visit.")}
+        ${checkRow("Google Tag conversion tracking", Boolean(lead.hasGoogleTag), "Required to attribute inbound calls and form submissions to search traffic.")}
+        ${checkRow("Google Maps review velocity (25+ reviews)", (lead.reviews || 0) >= 25 && (lead.rating || 0) >= 4.3, `Currently at ${lead.rating || 0} stars (${lead.reviews || 0} reviews). Local top-3 listings average 65+ reviews.`)}
       </tbody>
     </table>
 
     <div class="cta-box">
-      <h3 style="margin:0 0 6px;color:#065f46;font-size:16px;">Recommended 48-Hour Remediation Plan</h3>
-      <p style="margin:0;color:#047857;font-size:14px;line-height:1.5;">
-        <strong>Primary Priority:</strong> ${escapeHtml(lead.recommendedPitch)}<br/>
-        Fixing the red items above typically recovers <strong>15 to 35+ missed local customer inquiries per month</strong> within the first 30 days.
+      <h3 style="margin:0 0 6px;color:#171717;font-size:14px;font-weight:500;">48-hour remediation roadmap</h3>
+      <p style="margin:0;color:#525252;font-size:13px;">
+        <strong>Recommended action:</strong> ${escapeHtml(lead.recommendedPitch)}
       </p>
     </div>
   </div>
@@ -672,15 +675,15 @@ function clearLeads() {
 
 function loadDemoLeads() {
   const rawInput = document.getElementById("locationInput").value.trim();
-  const locCity = (isPro && rawInput && !rawInput.includes("Local Only"))
+  const locCity = (isPro && rawInput && !rawInput.includes("Local area only"))
     ? rawInput
-    : (userGeo.city || "Local Area");
+    : (userGeo.city || "Casablanca");
 
   allLeads = [
     {
       id: "demo_1",
       name: `Clinique Dentaire Prestige (${locCity})`,
-      category: "Dental Clinic",
+      category: "Dental clinic",
       address: `Centre Ville, ${locCity}`,
       rating: 4.1,
       reviews: 14,
@@ -694,12 +697,12 @@ function loadDemoLeads() {
       hasChatOrBooking: false,
       leaks: ["NO_SSL", "NO_CHAT_WIDGET", "NO_FB_PIXEL", "LOW_REVIEWS"],
       leakScore: 92,
-      recommendedPitch: "No 24/7 WhatsApp/AI Booking Widget + Unsecured HTTP site + Only 14 reviews. Pitch Funnel & Review Upgrade."
+      recommendedPitch: "Missing 24/7 booking capture, unencrypted HTTP site, and 14 reviews — pitch 48-hour funnel & review upgrade."
     },
     {
       id: "demo_2",
       name: `Atlas Luxury Real Estate (${locCity})`,
-      category: "Real Estate Agency",
+      category: "Real estate agency",
       address: `Boulevard Principal, ${locCity}`,
       rating: 4.5,
       reviews: 19,
@@ -713,12 +716,12 @@ function loadDemoLeads() {
       hasChatOrBooking: false,
       leaks: ["NO_WEBSITE", "LOW_REVIEWS"],
       leakScore: 95,
-      recommendedPitch: "No website connected on Google Maps — pitch 48-Hour High-Converting Local Landing Page + WhatsApp Lead Capture."
+      recommendedPitch: "No website linked on Google Maps — pitch 48-hour landing page + instant WhatsApp lead capture."
     },
     {
       id: "demo_3",
-      name: `Royal Aesthetics & Laser Spa (${locCity})`,
-      category: "Medical Spa & Clinic",
+      name: `Royal Aesthetics & Laser (${locCity})`,
+      category: "Medical spa",
       address: `Quartier Racine, ${locCity}`,
       rating: 4.7,
       reviews: 52,
@@ -732,7 +735,7 @@ function loadDemoLeads() {
       hasChatOrBooking: false,
       leaks: ["NO_CHAT_WIDGET", "NO_FB_PIXEL"],
       leakScore: 68,
-      recommendedPitch: "Leaking Ad & Organic Traffic — Missing both 24/7 AI Consultation Booking widget AND Meta Retargeting Pixel."
+      recommendedPitch: "Missing both 24/7 consultation booking widget and Meta retargeting pixel."
     }
   ];
   chrome.storage.local.set({ lsp_leads: allLeads });

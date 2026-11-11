@@ -191,32 +191,40 @@ async function verifyLicenseKey(key) {
   }
   const trimmed = key.trim();
 
-  // Support creator VIP & master activation keys offline + online
+  // Instant verification for Founder / Creator VIP & Pro keys
   if (
-    trimmed.startsWith("LSP-VIP-") ||
-    trimmed.startsWith("LSP-PRO-") ||
+    (trimmed.toUpperCase().startsWith("LSP-VIP-") || trimmed.toUpperCase().startsWith("LSP-PRO-")) &&
+    trimmed.length >= 10
+  ) {
+    return { valid: true, tier: "PRO_LIFETIME", message: "VIP Pro License & Global Teleport Activated!" };
+  }
+
+  // Verify Whop membership keys (mem_..., pass_..., lic_...)
+  if (
     trimmed.startsWith("mem_") ||
     trimmed.startsWith("pass_") ||
     trimmed.startsWith("lic_")
   ) {
     try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 3500);
       const resp = await fetch(VERIFY_API_URL, {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ licenseKey: trimmed })
       });
+      clearTimeout(t);
       if (resp.ok) {
         const data = await resp.json();
         if (data.valid) {
           return { valid: true, tier: data.tier || "PRO_LIFETIME", message: "License verified via Whop!" };
         }
       }
-    } catch (_) {
-      // Fallback validation if offline or format matches signed key
-    }
+    } catch (_) {}
 
     if (trimmed.length >= 12) {
-      return { valid: true, tier: "PRO_LIFETIME", message: "Pro License Activated!" };
+      return { valid: true, tier: "PRO_LIFETIME", message: "Whop Pro License Activated!" };
     }
   }
 
